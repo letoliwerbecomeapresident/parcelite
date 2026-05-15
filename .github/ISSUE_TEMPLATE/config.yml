@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Privacy notes
+    url: https://github.com/letoliwerbecomeapresident/parcelite/blob/main/PRIVACY.md
+    about: Read how Parcelite handles local data and Ship24 requests.
+  - name: Latest release
+    url: https://github.com/letoliwerbecomeapresident/parcelite/releases/latest
+    about: Download the latest Parcelite build before reporting an issue.

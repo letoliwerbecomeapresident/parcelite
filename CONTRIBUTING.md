@@ -22,4 +22,4 @@ Keep app-facing text in English. Keep Ship24-specific code behind the tracking p
 
 ## Release Notes
 
-User-facing changes should be recorded in `CHANGELOG.md`.
+User-facing changes should be recorded in `CHANGELOG.md`. Release steps live in [docs/releasing.md](docs/releasing.md).
