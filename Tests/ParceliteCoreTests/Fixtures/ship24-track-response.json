@@ -1,0 +1,31 @@
+{
+  "data": {
+    "trackings": [
+      {
+        "shipment": {
+          "statusMilestone": "in_transit",
+          "delivery": {
+            "service": "DHL Parcel"
+          }
+        },
+        "trackers": [
+          {
+            "courierCode": "dhl"
+          }
+        ],
+        "events": [
+          {
+            "status": "Shipment departed facility",
+            "datetime": "2026-05-15T08:15:00+00:00",
+            "location": "Warsaw, Poland"
+          },
+          {
+            "status": "Shipment accepted",
+            "datetime": "2026-05-14T19:22:00+00:00",
+            "location": "Poznan, Poland"
+          }
+        ]
+      }
+    ]
+  }
+}

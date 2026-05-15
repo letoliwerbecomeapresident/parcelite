@@ -1,0 +1,23 @@
+.DS_Store
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode and user state
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Local release output
+dist/
+*.app/
+*.zip
+AppIcon.iconset/
+
+# Logs and temporary files
+*.log
+*.tmp
