@@ -9,8 +9,8 @@
 Parcelite is a lightweight macOS app for tracking deliveries from one focused window. It uses the Ship24 API for carrier updates, stores your tracking list locally, and keeps your API key in macOS Keychain.
 
 <p align="center">
-  <img src="docs/assets/parcelite-list.png" alt="Parcelite package list" width="420">
-  <img src="docs/assets/parcelite-details.png" alt="Parcelite package details" width="420">
+  <img src="docs/assets/parcelite-list.png" alt="Parcelite package list" width="330">&nbsp;
+  <img src="docs/assets/parcelite-details.png" alt="Parcelite package details" width="330">
 </p>
 
 ## Features
