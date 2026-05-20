@@ -128,6 +128,44 @@ final class ParceliteCoreTests: XCTestCase {
         XCTAssertNil(try store.read(account: account))
     }
 
+    @MainActor
+    func testPackageArchivingAndUnarchiving() {
+        let store = TrackingStore(
+            userDefaults: makeDefaults(),
+            legacyDefaults: nil,
+            secretStore: MemorySecretStore(),
+            notificationPoster: MemoryNotifier(),
+            startTimer: false,
+            refreshOnLaunch: false
+        )
+
+        let result = store.add(label: "Test Package", trackingNumber: "XYZ98765")
+        guard case .added(let p) = result else {
+            return XCTFail("Expected package to be added")
+        }
+
+        XCTAssertFalse(store.packages[0].isArchived)
+
+        store.archive(p.id)
+        XCTAssertTrue(store.packages[0].isArchived)
+
+        store.unarchive(p.id)
+        XCTAssertFalse(store.packages[0].isArchived)
+    }
+
+    func testInPostResponseParsing() throws {
+        let url = Bundle.module.url(forResource: "inpost-track-response", withExtension: "json")!
+        let result = try InPostClient.parse(Data(contentsOf: url))
+
+        XCTAssertEqual(result.milestone, .availableForPickup)
+        XCTAssertEqual(result.courier, "InPost")
+        XCTAssertEqual(result.events.count, 2)
+        XCTAssertEqual(result.events[0].status, "Ready for pickup in locker")
+        XCTAssertEqual(result.events[0].location, "Locker KRA01A")
+        XCTAssertEqual(result.events[1].status, "Out for delivery with courier")
+    }
+
+
     private func makeDefaults() -> UserDefaults {
         let name = "com.oliwer.parcelite.tests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!

@@ -71,6 +71,11 @@ public struct Package: Codable, Identifiable, Equatable, Sendable {
     public var lastUpdated: Date?
     public var events: [TrackingEvent]
     public var lastError: String?
+    public var isArchived: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case id, label, trackingNumber, courier, milestone, lastUpdated, events, lastError, isArchived
+    }
 
     public init(
         id: UUID = UUID(),
@@ -80,7 +85,8 @@ public struct Package: Codable, Identifiable, Equatable, Sendable {
         milestone: Milestone = .unknown,
         lastUpdated: Date? = nil,
         events: [TrackingEvent] = [],
-        lastError: String? = nil
+        lastError: String? = nil,
+        isArchived: Bool = false
     ) {
         self.id = id
         self.label = label
@@ -90,5 +96,19 @@ public struct Package: Codable, Identifiable, Equatable, Sendable {
         self.lastUpdated = lastUpdated
         self.events = events
         self.lastError = lastError
+        self.isArchived = isArchived
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.label = try container.decode(String.self, forKey: .label)
+        self.trackingNumber = try container.decode(String.self, forKey: .trackingNumber)
+        self.courier = try container.decodeIfPresent(String.self, forKey: .courier)
+        self.milestone = try container.decode(Milestone.self, forKey: .milestone)
+        self.lastUpdated = try container.decodeIfPresent(Date.self, forKey: .lastUpdated)
+        self.events = try container.decode([TrackingEvent].self, forKey: .events)
+        self.lastError = try container.decodeIfPresent(String.self, forKey: .lastError)
+        self.isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
     }
 }

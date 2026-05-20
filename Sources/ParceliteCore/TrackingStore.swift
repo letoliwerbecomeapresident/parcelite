@@ -32,9 +32,9 @@ public final class TrackingStore: ObservableObject {
         userDefaults: UserDefaults = .standard,
         legacyDefaults: UserDefaults? = UserDefaults(suiteName: AppConstants.legacyBundleIdentifier),
         secretStore: SecretStore = KeychainSecretStore(),
-        notificationPoster: NotificationPosting = OsaScriptNotifier(),
+        notificationPoster: NotificationPosting = LocalNotificationNotifier(),
         refreshInterval: TimeInterval = AppConstants.defaultRefreshInterval,
-        providerFactory: @escaping @Sendable (String) -> any TrackingProvider = { Ship24Client(apiKey: $0) },
+        providerFactory: @escaping @Sendable (String) -> any TrackingProvider = { RoutingProvider(apiKey: $0) },
         startTimer: Bool = true,
         refreshOnLaunch: Bool = true
     ) {
@@ -107,11 +107,29 @@ public final class TrackingStore: ObservableObject {
         save()
     }
 
+    public func archive(_ id: UUID) {
+        if let index = packages.firstIndex(where: { $0.id == id }) {
+            packages[index].isArchived = true
+            save()
+        }
+    }
+
+    public func unarchive(_ id: UUID) {
+        if let index = packages.firstIndex(where: { $0.id == id }) {
+            packages[index].isArchived = false
+            save()
+        }
+    }
+
+
     public func refreshAll() async {
-        guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         isRefreshing = true
         defer { isRefreshing = false }
         for package in packages {
+            if package.isArchived { continue }
+            if !TrackingStore.isInPost(package.trackingNumber) && apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                continue
+            }
             await refresh(package.id)
         }
     }
@@ -199,4 +217,25 @@ public final class TrackingStore: ObservableObject {
     private func removePlainApiKeyIfPresent() {
         userDefaults.removeObject(forKey: AppConstants.legacyApiKeyStorageKey)
     }
+
+    nonisolated public static func isInPost(_ value: String) -> Bool {
+        value.range(of: "^[0-9]{24}$", options: .regularExpression) != nil
+    }
 }
+
+public struct RoutingProvider: TrackingProvider, Sendable {
+    public let apiKey: String
+
+    public init(apiKey: String) {
+        self.apiKey = apiKey
+    }
+
+    public func track(trackingNumber: String) async throws -> TrackingResult {
+        if TrackingStore.isInPost(trackingNumber) {
+            return try await InPostClient().track(trackingNumber: trackingNumber)
+        } else {
+            return try await Ship24Client(apiKey: apiKey).track(trackingNumber: trackingNumber)
+        }
+    }
+}
+

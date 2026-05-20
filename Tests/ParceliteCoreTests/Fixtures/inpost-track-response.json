@@ -1,0 +1,17 @@
+{
+  "status": "ready_to_pickup",
+  "tracking_number": "622340011833110020112933",
+  "tracking_details": [
+    {
+      "status": "ready_to_pickup",
+      "origin_status": "Ready for pickup in locker",
+      "datetime": "2026-05-19T21:10:23Z",
+      "agency": "Locker KRA01A"
+    },
+    {
+      "status": "out_for_delivery",
+      "origin_status": "Out for delivery with courier",
+      "datetime": "2026-05-19T10:00:00Z"
+    }
+  ]
+}

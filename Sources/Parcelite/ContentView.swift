@@ -9,6 +9,30 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showAdd = false
     @FocusState private var addFocused: Bool
+    @State private var detectedClipboardNumber: String? = nil
+
+    enum ListFilter {
+        case active
+        case archived
+    }
+
+    @State private var filter: ListFilter = .active
+    @State private var searchText = ""
+
+
+    private var filteredPackages: [Package] {
+        store.packages.filter { p in
+            let matchesFilter: Bool
+            switch filter {
+            case .active: matchesFilter = !p.isArchived
+            case .archived: matchesFilter = p.isArchived
+            }
+            if !matchesFilter { return false }
+            if searchText.isEmpty { return true }
+            let query = searchText.lowercased()
+            return p.label.lowercased().contains(query) || p.trackingNumber.lowercased().contains(query)
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -17,16 +41,78 @@ struct ContentView: View {
                 Divider()
             }
 
-            if store.packages.isEmpty {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search label or tracking number...", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .controlSize(.small)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(5)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
+
+            Picker("", selection: $filter) {
+                Text("Active (\(store.packages.filter { !$0.isArchived }.count))").tag(ListFilter.active)
+                Text("Archived (\(store.packages.filter { $0.isArchived }.count))").tag(ListFilter.archived)
+            }
+            .pickerStyle(.segmented)
+            .controlSize(.small)
+
+            if let clipboardNumber = detectedClipboardNumber {
+                HStack(spacing: 8) {
+                    Image(systemName: "doc.on.clipboard")
+                        .foregroundStyle(.blue)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Found tracking number in clipboard:")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(clipboardNumber)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    Spacer()
+                    Button("Add") {
+                        store.add(label: "", trackingNumber: clipboardNumber)
+                        withAnimation {
+                            detectedClipboardNumber = nil
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    Button("Dismiss") {
+                        withAnimation {
+                            detectedClipboardNumber = nil
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(8)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.1)))
+                .transition(.slide.combined(with: .opacity))
+            }
+
+            if filteredPackages.isEmpty {
                 HStack {
                     Spacer()
-                    Text("No tracked packages").foregroundStyle(.secondary).font(.caption)
+                    Text(filter == .active ? "No active packages" : "No archived packages")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
                     Spacer()
                 }.padding(.vertical, 8)
             } else {
                 ScrollView {
                     VStack(spacing: 4) {
-                        ForEach(store.packages) { p in
+                        ForEach(filteredPackages) { p in
                             PackageRow(package: p)
                         }
                     }
@@ -78,12 +164,20 @@ struct ContentView: View {
                     Image(systemName: "gearshape")
                 }.buttonStyle(.borderless).help("Settings")
 
+                Button { NSApp.terminate(nil) } label: {
+                    Image(systemName: "power")
+                        .foregroundColor(.red)
+                }.buttonStyle(.borderless).help("Quit")
+
                 Spacer()
             }
             .font(.callout)
         }
         .padding(12)
         .frame(minWidth: 360, maxWidth: .infinity, minHeight: 420, maxHeight: .infinity, alignment: .top)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            checkClipboard()
+        }
     }
 
     private func addCurrent() {
@@ -91,6 +185,23 @@ struct ContentView: View {
         if case .added = result {
             newNumber = ""
             newLabel = ""
+        }
+    }
+
+    private func checkClipboard() {
+        guard let clipboardString = NSPasteboard.general.string(forType: .string) else { return }
+        let normalized = TrackingStore.normalizedTrackingNumber(clipboardString)
+        guard TrackingStore.isValidTrackingNumber(normalized) else { return }
+
+        // Check if already tracking this number
+        let exists = store.packages.contains { p in
+            TrackingStore.normalizedTrackingNumber(p.trackingNumber).caseInsensitiveCompare(normalized) == .orderedSame
+        }
+
+        if !exists {
+            withAnimation {
+                detectedClipboardNumber = normalized
+            }
         }
     }
 }
@@ -127,6 +238,11 @@ struct PackageRow: View {
                     Button("Copy tracking number") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(package.trackingNumber, forType: .string)
+                    }
+                    if package.isArchived {
+                        Button("Unarchive") { store.unarchive(package.id) }
+                    } else {
+                        Button("Archive") { store.archive(package.id) }
                     }
                     Button("Delete", role: .destructive) { store.remove(package.id) }
                 } label: {

@@ -1,24 +1,32 @@
 import Foundation
+import UserNotifications
 
 public protocol NotificationPosting: Sendable {
     func post(title: String, body: String)
 }
 
-public struct OsaScriptNotifier: NotificationPosting {
+public struct LocalNotificationNotifier: NotificationPosting {
     public init() {}
 
     public func post(title: String, body: String) {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        task.arguments = [
-            "-e",
-            "display notification \"\(escape(body))\" with title \"\(AppConstants.appName)\" subtitle \"\(escape(title))\" sound name \"Glass\""
-        ]
-        try? task.run()
-    }
+        guard Bundle.main.bundlePath.hasSuffix(".app") else {
+            NSLog("Parcelite Notification (Unbundled): %@ - %@", title, body)
+            return
+        }
 
-    private func escape(_ s: String) -> String {
-        s.replacingOccurrences(of: "\\", with: "\\\\")
-         .replacingOccurrences(of: "\"", with: "\\\"")
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = UNNotificationSound.default
+
+        // Trigger immediately (e.g. in 0.1 seconds)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                NSLog("Parcelite: Failed to post notification: %@", error.localizedDescription)
+            }
+        }
     }
 }
